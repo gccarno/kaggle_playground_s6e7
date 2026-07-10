@@ -1,16 +1,23 @@
 {
   "id": "gcarno/s6e7-playground-gcc-v2",
+  "id_no": 126302842,
   "title": "s6e7-playground gcc v2",
   "code_file": "ply-s6e7-ft.ipynb",
   "language": "python",
   "kernel_type": "notebook",
-  "is_private": "false",
-  "enable_gpu": "true",
-  "enable_tpu": "false",
-  "enable_internet": "false",
-  "machine_shape": "GPU T4 x2",
+  "is_private": false,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [
+    "gpu"
+  ],
   "dataset_sources": [],
-  "competition_sources": ["playground-series-s6e7"],
   "kernel_sources": [],
-  "model_sources": []
+  "competition_sources": [
+    "playground-series-s6e7"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+  "machine_shape": "NvidiaTeslaT4"
 }
