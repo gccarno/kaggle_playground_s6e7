@@ -11,7 +11,7 @@ Usage:
 Designed to be run via the harness's background Bash execution -- a full
 push -> queue -> GPU run -> complete cycle can take a long time.
 """
-import argparse, csv, json, re, subprocess, sys, time, uuid
+import argparse, csv, json, re, shutil, subprocess, sys, time, uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,8 +25,12 @@ RUN_COLUMNS = [
     "xgb_oof", "cat_oof", "lr_oof", "ft_oof", "lgb_oof",
     "meta_oof_raw", "meta_oof_calibrated", "calibration_used",
     "class_weight_w0", "class_weight_w1", "class_weight_w2", "class_weight_method",
-    "final_oof_bal_acc", "public_lb_score", "notes",
+    "final_oof_bal_acc", "public_lb_score", "notes", "preds_dir",
 ]
+
+# Prediction artifacts the notebook writes alongside submission.csv; archived
+# per run so ply-s6e7-blend.ipynb can ensemble across submissions later.
+PRED_FILES = ["submission.csv", "test_proba.csv", "oof_proba.csv"]
 
 
 def run(cmd):
@@ -131,6 +135,25 @@ def submit_and_get_score(competition, ref, version, message, poll_interval, time
     return ""
 
 
+def archive_preds(workdir, run_id):
+    """Copy the run's prediction artifacts into experiments/preds/<run_id>/ so
+    they survive later kernel versions (Kaggle only serves the latest output).
+    Returns the repo-relative dir, or '' if nothing was found to archive."""
+    dest = REPO_ROOT / "experiments" / "preds" / run_id
+    copied = []
+    for name in PRED_FILES:
+        matches = sorted(p for p in workdir.rglob(name) if p.is_file())
+        if matches:
+            dest.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(matches[0], dest / name)
+            copied.append(name)
+    if not copied:
+        print(f"  WARNING: no prediction artifacts ({', '.join(PRED_FILES)}) found under {workdir}")
+        return ""
+    print(f"  Archived {', '.join(copied)} -> {dest}")
+    return dest.relative_to(REPO_ROOT).as_posix()
+
+
 def append_run_row(row):
     RUNS_CSV.parent.mkdir(parents=True, exist_ok=True)
     is_new = not RUNS_CSV.exists()
@@ -172,6 +195,9 @@ def main():
     metrics = pull_run_metrics(ref, workdir)
     print("Parsed RUN_METRICS_JSON:", json.dumps(metrics, indent=2))
 
+    run_id = uuid.uuid4().hex[:8]
+    preds_dir = archive_preds(workdir, run_id)
+
     score = ""
     if args.submit:
         score = submit_and_get_score(args.competition, ref, version, args.description,
@@ -181,7 +207,7 @@ def main():
     base = metrics.get("base_oof_bal_acc", {})
     cw = metrics.get("class_weights", [None, None, None])
     row = {
-        "run_id": uuid.uuid4().hex[:8],
+        "run_id": run_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": commit,
         "git_dirty": dirty,
@@ -206,6 +232,7 @@ def main():
         "final_oof_bal_acc": metrics.get("final_oof_bal_acc", ""),
         "public_lb_score": score,
         "notes": args.notes,
+        "preds_dir": preds_dir,
     }
     append_run_row(row)
     print(f"\nAppended run {row['run_id']} to {RUNS_CSV}")

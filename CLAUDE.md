@@ -10,8 +10,8 @@ heavily imbalanced training set (`at-risk` dominates — predicting it for every
 accuracy but only ~33% balanced accuracy).
 
 All the substantive work lives in Jupyter notebooks written to run as **Kaggle kernels** (paths like
-`/kaggle/input/...`, `/kaggle/working/...`), not as a local Python package — `src/`, `notebooks/`,
-and `experiments/` are currently empty placeholder directories.
+`/kaggle/input/...`, `/kaggle/working/...`), not as a local Python package — `src/` and `notebooks/`
+are empty placeholders. `experiments/` holds the experiment log and per-run prediction artifacts.
 
 ## Repo layout
 
@@ -22,10 +22,23 @@ and `experiments/` are currently empty placeholder directories.
   by a single **from-scratch PyTorch FT-Transformer** (no `pytabkit`/`tab-transformer-pytorch`
   dependency, since `pytabkit` doesn't install offline on Kaggle). Prefer this one as the base for
   further edits unless told otherwise.
+- `ply-s6e7-blend.ipynb` — **local** notebook (run from the repo root, never pushed to Kaggle) that
+  ensembles **across prior submissions**: hill-climbs blend weights over the probability artifacts in
+  `experiments/preds/*/` on OOF balanced accuracy, re-runs the per-class decision-weight search, and
+  writes a blended submission + manifest to `experiments/blends/<stamp>/` (submit that CSV directly
+  with `kaggle competitions submit -f ...`). Appends a row to `experiments/runs.csv`.
 - `kernel-metadata.json` — Kaggle kernel push config (`kaggle kernels push`). `code_file` currently
-  points at `ply-s6e7-ft.ipynb`; update it if the active notebook changes. Runs on GPU T4 x2,
-  competition source `playground-series-s6e7`, no internet access during kernel execution (so any
-  new pip installs must work from Kaggle's bundled package index).
+  points at `ply-s6e7-ft.ipynb` — that stays the main experiment kernel; don't point it at the blend
+  notebook. Runs on GPU T4 x2, competition source `playground-series-s6e7`, no internet access during
+  kernel execution (so any new pip installs must work from Kaggle's bundled package index).
+- `scripts/collect_run.py` — pushes the kernel, polls to completion, parses `RUN_METRICS_JSON` from
+  the kernel log, optionally submits, and appends a row to `experiments/runs.csv`. It also archives
+  the run's prediction artifacts (`submission.csv`, `test_proba.csv`, `oof_proba.csv` — written by
+  the notebook's submission cell) to `experiments/preds/<run_id>/` (gitignored), recording the path
+  in the `preds_dir` column. These probability artifacts are what make cross-submission blending
+  possible — keep the notebook writing them.
+- `experiments/runs.csv` — the experiment log (tracked in git): one row per kernel run or blend, with
+  per-learner OOF scores, class weights, public LB score, and notes.
 
 ## Running / iterating on the notebooks
 

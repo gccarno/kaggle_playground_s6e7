@@ -1,3 +1,6 @@
 .kaggle_output/
 __pycache__/
 *.pyc
+# per-run prediction artifacts (large CSVs; runs.csv stays tracked)
+experiments/preds/
+experiments/blends/
