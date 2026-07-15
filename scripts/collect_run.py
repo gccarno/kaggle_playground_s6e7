@@ -112,10 +112,18 @@ def pull_run_metrics(ref, workdir):
     raise RuntimeError(f"RUN_METRICS_JSON not found in any file under {workdir}")
 
 
-def submit_and_get_score(competition, ref, version, message, poll_interval, timeout_min):
-    cmd = ["kaggle", "competitions", "submit", competition, "-k", ref, "-m", message]
+def submit_and_get_score(competition, ref, version, message, poll_interval, timeout_min,
+                         file_fallback=None):
+    # Kernel-based submission requires an explicit version number; when we don't
+    # have one (--no-push, or the push output couldn't be parsed), submit the
+    # pulled submission.csv directly instead -- playground comps accept files.
     if version:
-        cmd += ["-v", version]
+        cmd = ["kaggle", "competitions", "submit", competition, "-k", ref, "-v", version, "-m", message]
+    elif file_fallback is not None and Path(file_fallback).is_file():
+        print(f"  No kernel version available; submitting file directly: {file_fallback}")
+        cmd = ["kaggle", "competitions", "submit", competition, "-f", str(file_fallback), "-m", message]
+    else:
+        cmd = ["kaggle", "competitions", "submit", competition, "-k", ref, "-m", message]
     out = run(cmd)
     print(out.stdout); print(out.stderr, file=sys.stderr)
     if out.returncode != 0:
@@ -200,8 +208,9 @@ def main():
 
     score = ""
     if args.submit:
+        sub_file = next(iter(sorted(p for p in workdir.rglob("submission.csv") if p.is_file())), None)
         score = submit_and_get_score(args.competition, ref, version, args.description,
-                                      args.poll_interval, args.timeout_min)
+                                      args.poll_interval, args.timeout_min, file_fallback=sub_file)
         print(f"Public LB score: {score}")
 
     base = metrics.get("base_oof_bal_acc", {})
