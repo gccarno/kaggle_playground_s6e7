@@ -18,10 +18,12 @@ are empty placeholders. `experiments/` holds the experiment log and per-run pred
 - `ply-s6e7-vibe-v2.ipynb` — 5-base-learner stack: XGBoost + CatBoost + LogisticRegression +
   **RealMLP** (`pytabkit`) + **TabTransformer** (`tab_transformer_pytorch`), both third-party deep
   tabular libraries.
-- `ply-s6e7-ft.ipynb` — the newer variant. Same pipeline, but RealMLP + TabTransformer are replaced
-  by a single **from-scratch PyTorch FT-Transformer** (no `pytabkit`/`tab-transformer-pytorch`
-  dependency, since `pytabkit` doesn't install offline on Kaggle). Prefer this one as the base for
-  further edits unless told otherwise.
+- `ply-s6e7-ft.ipynb` — the active notebook (name is historical). As of v9 the stack is two base
+  learners: **XGBoost + a from-scratch PyTorch RealMLP** (ported from the public notebook
+  `nawfeelrahman1124444/ps-s6-ep6-realmlp-0-95090`, no `pytabkit` — it doesn't install offline on
+  Kaggle). CatBoost/LightGBM/LR were dropped as base learners in v9 (redundant with XGB per
+  v5–v8), but CatBoost + LightGBM still power the 3-model SHAP feature-selection consensus.
+  Prefer this notebook as the base for further edits unless told otherwise.
 - `ply-s6e7-blend.ipynb` — **local** notebook (run from the repo root, never pushed to Kaggle) that
   ensembles **across prior submissions**: hill-climbs blend weights over the probability artifacts in
   `experiments/preds/*/` on OOF balanced accuracy, re-runs the per-class decision-weight search, and
@@ -79,14 +81,12 @@ any single cell, since later stages depend on column-set/dtype decisions made ea
    importances are folded back onto their *source* feature (summing `col__te0..teK`), and the
    smallest feature set reaching 95% cumulative |SHAP| (floor `MIN_FEATURES=12`) is kept — `X`,
    `X_test`, `CAT_COLS`, `NUM_COLS` are all narrowed to this set for the rest of the notebook.
-6. **Optuna HPO** on a 20% stratified sample, 3-fold CV, optimizing **balanced accuracy** directly —
-   only for XGBoost/CatBoost/LogisticRegression (`obj_xgb`/`obj_cat`/`obj_lr`); the neural learner(s)
-   use fixed hyperparameters (per-fold HPO on a net inside the outer stack would be too slow).
-7. **Base learner fit functions** (`fit_xgb`, `fit_cat`, `fit_lr`, `fit_ft` or
-   `fit_realmlp`/`fit_tabtransformer`) — each takes `(Xt, yt, Xv, Xte, yv)` and returns
-   `(val_proba, test_proba)` of shape `(n, K)`. Class imbalance is handled per-learner: sample
-   weights for XGB/LR, CatBoost's `auto_class_weights="Balanced"`, resampling for RealMLP, and
-   balanced cross-entropy weights for the from-scratch FT-Transformer/TabTransformer.
+6. **Optuna HPO** on a stratified sample, 3-fold CV, optimizing **balanced accuracy** directly —
+   XGBoost only as of v9 (`obj_xgb`); the RealMLP uses the reference notebook's published config
+   verbatim (per-fold HPO on a net inside the outer stack would be too slow).
+7. **Base learner fit functions** (`fit_xgb`, `fit_mlp`) — each takes `(Xt, yt, Xv, Xte, yv, seed)`
+   and returns `(val_proba, test_proba)` of shape `(n, K)`. Class imbalance is handled per-learner:
+   balanced sample weights for XGB, balanced class weights in the RealMLP's smoothed CE loss.
 8. **Outer 5-fold stacking**: `StratifiedKFold(N_FOLDS=5)`, every base learner is fit per fold, OOF
    validation predictions build `oof_meta` (shape `n × (N_BASE·K)`), test predictions are averaged
    across folds into `test_meta`. `BASE_LEARNERS` list order must match the concatenation order fed

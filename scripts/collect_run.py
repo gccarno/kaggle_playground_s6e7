@@ -22,7 +22,7 @@ RUNS_CSV = REPO_ROOT / "experiments" / "runs.csv"
 RUN_COLUMNS = [
     "run_id", "timestamp_utc", "git_commit", "git_dirty", "kernel_ref", "kernel_version",
     "description", "n_seeds", "hpo_sample_frac", "notebook_runtime_sec",
-    "xgb_oof", "cat_oof", "lr_oof", "ft_oof", "lgb_oof",
+    "xgb_oof", "cat_oof", "lr_oof", "ft_oof", "lgb_oof", "mlp_oof",
     "meta_oof_raw", "meta_oof_calibrated", "calibration_used",
     "class_weight_w0", "class_weight_w1", "class_weight_w2", "class_weight_method",
     "final_oof_bal_acc", "public_lb_score", "notes", "preds_dir",
@@ -231,6 +231,7 @@ def main():
         "lr_oof": base.get("lr", ""),
         "ft_oof": base.get("ft", ""),
         "lgb_oof": base.get("lgb", ""),
+        "mlp_oof": base.get("mlp", ""),
         "meta_oof_raw": metrics.get("meta_oof_bal_acc_raw", ""),
         "meta_oof_calibrated": metrics.get("meta_oof_bal_acc_calibrated", ""),
         "calibration_used": metrics.get("calibration_used", ""),
