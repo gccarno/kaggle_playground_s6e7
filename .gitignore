@@ -4,3 +4,5 @@ __pycache__/
 # per-run prediction artifacts (large CSVs; runs.csv stays tracked)
 experiments/preds/
 experiments/blends/
+# harvested public submission/artifact bank (E4; large, not ours to redistribute)
+experiments/bank/

@@ -29,8 +29,13 @@ RUN_COLUMNS = [
 ]
 
 # Prediction artifacts the notebook writes alongside submission.csv; archived
-# per run so ply-s6e7-blend.ipynb can ensemble across submissions later.
+# per run so ply-s6e7-blend.ipynb (and the probe engine) can ensemble across
+# submissions later. Includes the per-base-learner probability files the stack
+# emits (test_proba_<learner>.csv / oof_proba_<learner>.csv) so each learner is
+# usable as an independent blend source.
 PRED_FILES = ["submission.csv", "test_proba.csv", "oof_proba.csv"]
+for _lk in ("xgb", "mlp", "ftplr", "catnat", "minority"):
+    PRED_FILES += [f"test_proba_{_lk}.csv", f"oof_proba_{_lk}.csv"]
 
 
 def run(cmd):
@@ -230,7 +235,7 @@ def main():
         "xgb_oof": base.get("xgb", ""),
         "cat_oof": base.get("cat", ""),
         "lr_oof": base.get("lr", ""),
-        "ft_oof": base.get("ft", ""),
+        "ft_oof": base.get("ftplr", ""),   # FT-PLR (v11+) reuses the historical ft_oof column
         "lgb_oof": base.get("lgb", ""),
         "mlp_oof": base.get("mlp", ""),
         "meta_oof_raw": metrics.get("meta_oof_bal_acc_raw", ""),
