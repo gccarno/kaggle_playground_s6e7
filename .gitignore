@@ -6,3 +6,5 @@ experiments/preds/
 experiments/blends/
 # harvested public submission/artifact bank (E4; large, not ours to redistribute)
 experiments/bank/
+# single-model file submissions built from per-learner proba artifacts
+experiments/singles/
