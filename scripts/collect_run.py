@@ -34,7 +34,8 @@ RUN_COLUMNS = [
 # emits (test_proba_<learner>.csv / oof_proba_<learner>.csv) so each learner is
 # usable as an independent blend source.
 PRED_FILES = ["submission.csv", "test_proba.csv", "oof_proba.csv"]
-for _lk in ("xgb", "mlp", "ftplr", "catnat", "minority", "node", "tabm", "grande"):
+for _lk in ("xgb", "mlp", "ftplr", "catnat", "minority", "node", "tabm", "grande",
+            "lgbte", "catte", "hgbte", "et", "ftplr2", "cnn1d"):
     PRED_FILES += [f"test_proba_{_lk}.csv", f"oof_proba_{_lk}.csv"]
 
 
